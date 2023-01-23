@@ -1,0 +1,355 @@
+.data
+6
+0
+30
+0x100
+0x140
+0x200
+0			;; 0 ili 4 za autic
+    33, 34
+40, 41, 42, 43
+    49, 50
+56, 57, 58, 59
+0			;; 0 ili 4 za prepreku
+ 0,  1,  2,  3
+
+.text
+/*
+	Spisak registara:
+	R0 - tmp register
+	R1 - tmp chunk x
+	R2 - tmp chunk y
+	R3 - color
+	R4 - p_data
+	R5 - p_pb_dec
+	R6 - p_frame_sync
+	R7 - p_rgb_matrix
+*/
+
+begin:
+
+frame_sync_rising_edge:
+	;; Setup pointers and color.
+	sub R0, R0, R0
+	inc R0, R0                  ;; addr = 1
+	inc R0, R0                  ;; addr = 2
+	inc R0, R0                  ;; addr = 3
+	ld R7, R0                   ;; R7 <- p_rgb_matrix
+	inc R0, R0                  ;; addr = 4
+	ld R6, R0                   ;; R6 <- p_frame_sync
+	inc R0, R0                  ;; addr = 5
+	ld R5, R0                   ;; R5 <- p_pb_dec
+
+
+frame_sync_wait_0:
+	ld R0, R6                   ;; R0 <- p_frame_sync
+	jmpnz frame_sync_wait_0
+frame_sync_wait_1:
+	ld R0, R6                   ;; R0 <- p_frame_sync
+	jmpz frame_sync_wait_1
+
+	sub R4, R4, R4
+	ld  R4, R4
+
+	ld  R0, R5
+	jmps pomeri_levo
+	jmpz postavi_boju_autica
+
+pomeri_desno:
+	sub R0, R0, R0
+	inc R0, R0
+	shl R0, R0
+	shl R0, R0
+	st  R0, R4		;; postavi 4 ako je desno, sluzi da kasnije smanji kod kod pomeranja autica
+	jmp postavi_boju_autica
+
+pomeri_levo:
+	sub R0, R0, R0
+	st  R0, R4
+
+postavi_boju_autica:
+	sub R3, R3, R3
+	inc R3, R3
+	shl R3, R3
+	shl R3, R3
+	inc R3, R3		;; R3 = ljubicasta
+
+pocetak_petljice_autic:
+	sub R0, R0, R0
+	ld  R1, R0
+	shl R0, R1		;; R0 = 12 (brojac)
+
+
+;; R0 = brojac, R1 = p_autic, R3 = boja, R4 = p_pozicija
+crtaj_autic_petljica:
+
+	inc R1, R1		;; R1 pokazuje na autic
+
+	dec R0, R0
+	jmps kraj_petljice_autic
+
+	ld  R2, R4
+	ld  R6, R1
+
+	add R6, R6, R7		;; autic + adresa matrice
+	add R6, R6, R2		;; autic +0 ili +4 ako je desno
+
+	st  R3, R6
+
+	jmp crtaj_autic_petljica
+
+kraj_petljice_autic:
+
+postavi_boju_prepreke:
+	sub R3, R3, R3
+	inc R3, R3		;; R3 = crvena
+
+pocetak_petljice_prepreka:
+	sub R0, R0, R0
+
+	inc R0, R0
+	inc R0, R0
+	inc R0, R0
+	inc R0, R0		;; Brojac = 4
+
+	sub R1, R1, R1
+	inc R1, R1		;; 1
+	shl R1, R1		;; 2
+	shl R1, R1		;; 4
+	shl R1, R1		;; 8
+	shl R1, R1		;; 16
+	inc R1, R1
+	inc R1, R1
+	inc R1, R1		;; R1 = 19
+
+	mov R4, R1		;; R4 = 19
+
+
+;; R0 je brojac petlje
+;; R1 pokazuje na trenutni piksel prepreke
+;; R4 je pomeraj prepreke
+
+
+crtaj_prepreku_petljica:
+	inc R1, R1
+
+	dec R0, R0
+	jmps kraj_petljice_prepreka
+
+	ld  R2, R4
+	ld  R6, R1
+
+	add R6, R6, R7
+	add R6, R6, R2
+
+	st  R3, R6
+
+	jmp crtaj_prepreku_petljica
+
+kraj_petljice_prepreka:
+
+
+count_frames_begin:
+	sub R0, R0, R0              ;; addr = 0
+	inc R0, R0
+	ld R1, R0                   ;; R1 <- frame_cnt
+	inc R0, R0
+	ld R2, R0                   ;; R2 <- frames_per_heartbeat
+	dec R0, R0
+	inc R1, R1                  ;; frame_cnt++;
+	sub R2, R2, R1              ;; frame_cnt == frames_per_heartbeat
+	jmpz count_frames_heatbeat  ;; Jump if equal.
+	st R1, R0                   ;; R1 -> frame_cnt
+	jmp frame_sync_rising_edge
+count_frames_heatbeat:
+	sub R1, R1, R1
+	st R1, R0                   ;; R1 i.e. 0 -> frame_cnt
+	;; Move snake, eat food...
+count_frames_end:
+
+
+
+
+pocetak_petljice_pomeri_prepreku:
+	sub R0, R0, R0
+
+	inc R0, R0
+	inc R0, R0
+	inc R0, R0
+	inc R0, R0		;; Brojac = 4
+
+
+	sub R1, R1, R1
+	inc R1, R1		;; 1
+	shl R1, R1		;; 2
+	shl R1, R1		;; 4
+	shl R1, R1		;; 8
+	shl R1, R1		;; 16
+	inc R1, R1
+	inc R1, R1
+	inc R1, R1		;; R1 = 19
+
+	sub R2, R2, R2
+	inc R2, R2
+	shl R2, R2
+	shl R2, R2
+	shl R2, R2		;; R2 = 8
+
+;; R0 je brojac petlje
+;; R1 pokazuje na trenutni piksel prepreke
+;; R2 je broj sa kojim pomeramo prepreku +8
+
+pomeri_prepreku_petljica:
+	inc R1, R1
+
+	dec R0, R0
+	jmps kraj_petljice_pomeri_prepreku
+
+	ld  R6, R1
+	add R6, R6, R2
+	st  R6, R1
+
+	jmp pomeri_prepreku_petljica
+
+kraj_petljice_pomeri_prepreku:
+
+
+
+	sub R1, R1, R1
+	inc R1, R1		;; 1
+	shl R1, R1		;; 2
+	shl R1, R1		;; 4
+	shl R1, R1		;; 8
+	shl R1, R1		;; 16
+	inc R1, R1
+	inc R1, R1
+	inc R1, R1		
+	inc R1, R1		;; R1 = 20
+
+	ld  R2, R1
+
+	sub R0, R0, R0
+	inc R0, R0
+	shl R0, R0
+	shl R0, R0
+	shl R0, R0
+	shl R0, R0
+	shl R0, R0
+	shl R0, R0		;; R0 = 64, piksel ispod levog dole
+	
+	sub R0, R2, R0
+	jmpnz nemoj_resetovati
+
+resetuj_poziciju_prepreke:
+	st  R0, R1		;; 0 u prvi piksel
+
+	inc R0, R0
+	inc R1, R1
+	st  R0, R1		;; 1 u drugi piksel
+
+	inc R0, R0
+	inc R1, R1
+	st  R0, R1		;; 2 u treci piksel
+
+	inc R0, R0
+	inc R1, R1
+	st  R0, R1		;; 3 u cetvrti piksel
+	
+
+	dec R1, R1
+	dec R1, R1
+	dec R1, R1
+	dec R1, R1		;; vrati R1 da pokazuje na pomerac prepreke
+
+	sub R0, R0, R0
+	inc R0, R0
+	shl R0, R0
+	inc R0, R0
+	shl R0, R0
+	shl R0, R0
+	shl R0, R0
+	shl R0, R0
+	shl R0, R0
+	shl R0, R0
+	shl R0, R0
+	shl R0, R0		;; R0 = 0000 0011 0000 0000 tj. 0x300
+
+	st  R0, R0
+	ld  R2, R0		;; ucita 0 ili 4 nasumicno
+	st  R2, R1		;; sacuvaj taj broj u pomerac prepreke
+	
+
+nemoj_resetovati:
+
+
+
+
+sudarili_se_prepreka_i_auto:
+
+
+pocetak_petljice_sudar:
+	sub R0, R0, R0
+
+	inc R0, R0
+	inc R0, R0
+	inc R0, R0
+	inc R0, R0		;; Brojac spoljasnje = 4
+	
+	shl R1, R0
+	shl R1, R1
+	inc R1, R1
+	inc R1, R1
+	inc R1, R1
+	ld  R7, R1
+
+;; R0 je brojac spoljasnje petlje
+;; R1 pokazuje na trenutni piksel prepreke
+;; R2 je brojac unutrasnje petlje
+;; R3 pokazuje na trenutni piksel autica
+;; R6 pomerac autica
+;; R7 pomerac prepreke
+
+spoljasnja_petljica_sudar:
+	inc R1, R1
+
+	dec R0, R0
+	jmps kraj_spoljasnje_petljice_sudar
+
+
+	pocetak_petljice_sudar_autic:
+		sub R2, R2, R2
+		ld  R2, R2
+		mov R3, R2
+		shl R2, R2		;; Brojac unutrasnje = 12
+
+		ld  R6, R3
+
+
+	unutrasnja_petljica_sudar:
+		inc R3, R3
+
+		dec R2, R2
+		jmps kraj_unutrasnje_petljice_sudar
+
+		ld  R4, R1
+		ld  R5, R3
+		
+		add R4, R4, R7
+		add R5, R5, R6
+
+		sub R4, R4, R5
+		jmpz kraj_igre
+
+		jmp unutrasnja_petljica_sudar
+
+	kraj_unutrasnje_petljice_sudar:
+
+
+	jmp spoljasnja_petljica_sudar
+
+kraj_spoljasnje_petljice_sudar:
+	jmp frame_sync_rising_edge
+
+kraj_igre:
+	jmp kraj_igre
+
